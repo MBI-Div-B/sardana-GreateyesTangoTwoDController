@@ -35,9 +35,9 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
     def __init__(self, inst, props, *args, **kwargs):
         """Constructor"""
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        print 'GreatEyes Tango Initialization ...',
+        print ('GreatEyes Tango Initialization ...')
         self.proxy = DeviceProxy(self.tangoFQDN)
-        print 'SUCCESS'
+        print ('SUCCESS')
         self._axes = {}
         
     def ReadOne(self, axis):
@@ -76,14 +76,17 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
 
     def StopOne(self, axis):
         """Stop the specified counter"""
-        self.proxy.StopAcq()
+        pass
+        #self.proxy.StopAcq()
     
     def AbortOne(self, axis):
         """Abort the specified counter"""
-        self.proxy.StopAcq()
+        pass
+        #self.proxy.StopAcq()
 
     def isSavingEnabled(self, axis):
         return bool(self.proxy.SaveImageFiles)
 
     def setSavingEnabled(self, axis, value):
         self.proxy.SaveImageFiles = bool(value)
+        
