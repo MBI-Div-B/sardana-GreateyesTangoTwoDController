@@ -2,7 +2,7 @@ import copy
 import os
 import pprint
 
-from sardana.macroserver.macro import Macro, Optional
+from sardana.macroserver.macro import Macro, Optional, Type
 
 CHARLIE_ENV = "_CharlieConfiguration"
 
@@ -33,8 +33,8 @@ class charlie_conf(Macro):
     """Show and alter current CHARLIE configuration."""
 
     param_def = [
-        ["parameter", Optional, None, "Parameter to set or query."],
-        ["value", Optional, None, "Value to set (optional)."],
+        ["parameter", Type.String, Optional, "Parameter to set or query."],
+        ["value", Type.String, Optional, "Value to set (optional)."],
     ]
 
     def run(self, parameter=None, value=None):
