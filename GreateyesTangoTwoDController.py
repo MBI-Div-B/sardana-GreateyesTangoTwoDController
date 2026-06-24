@@ -1,71 +1,141 @@
+import re
+from enum import IntEnum
+from os import path
+
+from sardana.pool import AcqSynch
+from sardana.pool.controller import (
+    DefaultValue,
+    Description,
+    FGet,
+    FSet,
+    Referable,
+    TwoDController,
+    Type,
+)
 from tango import DeviceProxy
-from sardana.pool.controller import TwoDController, Referable, Type, Description, DefaultValue, FGet, FSet
+
+ALLOWED_SYNCHRONIZATIONS = [AcqSynch.SoftwareTrigger, AcqSynch.SoftwareStart]
+
+
+class Gain(IntEnum):
+    LOW = 0
+    STD = 1
+    HDR = 2
+    HDR_LOWNOISE = 3
+
 
 class GreateyesTangoTwoDController(TwoDController, Referable):
-    """The most basic controller intended from demonstration purposes only.
-    This is the absolute minimum you have to implement to set a proper counter
-    controller able to get a counter value, get a counter state and do an
-    acquisition.
+    """TwoDController for Greateyes CHARLIE sCMOS camera tango device server."""
 
-    This example is so basic that it is not even directly described in the
-    documentation"""
-    ctrl_properties = {'tangoFQDN': {Type: str, 
-                              Description: 'The FQDN of the greateyes tango DS', 
-                              DefaultValue: 'greateyes.hhg.lab'},
-                       }
+    ctrl_properties = {
+        "tangoFQDN": {
+            Type: str,
+            Description: "The FQDN of the greateyes tango DS",
+            DefaultValue: "greateyes.hhg.lab",
+        },
+    }
 
     axis_attributes = {
-             "SavingEnabled": {
-                Type: bool,
-                FGet: "isSavingEnabled",
-                FSet: "setSavingEnabled",
-                Description: ("Enable/disable saving of images in HDF5 files."
-                              " Use with care in high demanding (fast)"
-                              " acquisitions. Trying to save at high rate may"
-                              " hang the acquisition process."),
-             }
-        }
+        "SavingEnabled": {
+            Type: bool,
+            FGet: "isSavingEnabled",
+            FSet: "setSavingEnabled",
+            Description: "Enable/ disable saving of images in tiff files."
+        },
+        "Gain": {
+            Type: str,
+            FGet: "getGain",
+            FSet: "setGain",
+            Description: "Gain mode (LOW, STD, HDR, HDR_LOWNOISE)",
+        },
+    }
 
-    def AddDevice(self, axis):
-        self._axes[axis] = {}
-
-    def DeleteDevice(self, axis):
-        self._axes.pop(axis)
+    MaxDevice = 1
 
     def __init__(self, inst, props, *args, **kwargs):
         """Constructor"""
-        TwoDController.__init__(self,inst,props, *args, **kwargs)
-        print ('GreatEyes Tango Initialization ...')
-        self.proxy = DeviceProxy(self.tangoFQDN)
-        print ('SUCCESS')
-        self._axes = {}
-        
+        super().__init__(self, inst, props, *args, **kwargs)
+        self._initialized: bool = False
+        self._last_image_returned: int | None = None
+        self._synchronization = AcqSynch.SoftwareTrigger
+
+        try:
+            self.proxy = DeviceProxy(self.tangoFQDN)
+            self._initialized = True
+        except Exception as exc:
+            self._log.error(f"Error starting GreateyesTangoTwoDController: {exc}")
+
     def ReadOne(self, axis):
-        """Get the specified counter value"""    
-        #print(self._SavingEnabled)
-        #print('Image saved to: {:s}'.format(self.proxy.LastSavedImage))
+        """We should never return the image since overhead is way too much."""
         return self.proxy.image
-    
+
+    def getLastFileIndex(self) -> int:
+        index = re.findall(r"([0-9]+)\.tif", self.proxy.LastSavedImage)
+        if len(index):
+            return index[0]
+        else:
+            return 0
+
+    def getFileNamePattern(self) -> str:
+        return path.join(self.proxy.FileDir, f"{self.proxy.FilePrefix}%06d.tif")
+
     def RefOne(self, axis):
-        return self.proxy.LastSavedImage
-    
+        if not self.proxy.SaveImageFile:
+            return "None"
+
+        elif self._synchronization == AcqSynch.SoftwareTrigger:
+            return self.proxy.LastSavedImage
+
+        elif self._synchronization == AcqSynch.SoftwareStart:
+            current_index = self.getLastFileIndex()
+            filepattern = self.getFileNamePattern()
+            new_indices = range(self._last_image_returned, current_index)
+            self._last_image_returned = current_index
+            return [filepattern % i for i in new_indices]
+
+        else:
+            raise NotImplementedError("Only Software synchronization implemented!")
+
+    def SetCtrlPar(self, name, value):
+        super().SetCtrlPar(name, value)
+        name = name.lower()
+        if name == "synchronization":
+            if value not in ALLOWED_SYNCHRONIZATIONS:
+                raise ValueError("Only Software synchronzation implemented!")
+            else:
+                self._synchronization = value
+            
     def SetAxisPar(self, axis, parameter, value):
-#        if parameter == "value_ref_pattern":
-#            print('value_ref_pattern ' + str(value))
-#        elif parameter == "value_ref_enabled":
-#            print('value_ref_enabled ' + str(value))
-#            self.setSavingEnabled(axis, value)
-        pass
+        parameter = parameter.lower()
+        if parameter == "value_ref_pattern":
+            folder, fname = path.split(value)
+            if not path.isdir(folder):
+                raise ValueError(f"{folder} is not a directory!")
+            self.proxy.FileDir = folder
+            self.proxy.FilePrefix = fname
+        elif parameter == "value_ref_enabled" and not value:
+            raise ValueError("Cannot disable value_ref_enabled on 2D")
+
+    def GetAxisPar(self, axis, parameter):
+        parameter = parameter.lower()
+        if parameter == "value_ref_pattern":
+            return self.getFileNamePattern()
+        elif parameter == "value_ref_enabled":
+            return True
 
     def StateOne(self, axis):
         """Get the specified counter state"""
-#            
-        return self.proxy.State(), "Counter is acquiring or not"
+        return self.proxy.State()
 
     def PrepareOne(self, axis, value, repetitions, latency, nb_starts):
-        # set exporsure time of GE cam
-        self.proxy.ExposureTime = float(value)
-    
+        self.proxy.ExposureTime = 1000 * value
+        if repetitions > 1:
+            self.proxy.ReadoutMode = 1
+            self.proxy.NumAcquisitions = repetitions
+        else:
+            self.proxy.ReadoutMode = 0
+        self.proxy.PrepareAcq()
+
     def LoadOne(self, axis, value, repetitions, latency):
         pass
 
@@ -76,17 +146,25 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
 
     def StopOne(self, axis):
         """Stop the specified counter"""
-        pass
-        #self.proxy.StopAcq()
-    
+        self.proxy.StopAcq()
+
     def AbortOne(self, axis):
         """Abort the specified counter"""
-        pass
-        #self.proxy.StopAcq()
+        self.proxy.StopAcq()
 
     def isSavingEnabled(self, axis):
         return bool(self.proxy.SaveImageFiles)
 
     def setSavingEnabled(self, axis, value):
         self.proxy.SaveImageFiles = bool(value)
-        
+
+    def getGain(self) -> str:
+        return self.proxy.Gain.name.upper()
+
+    def setGain(self, value: str):
+        self.proxy.Gain = Gain[value.upper()]
+
+
+
+
+
