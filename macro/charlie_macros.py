@@ -21,7 +21,7 @@ def get_env(macro_obj, var=CHARLIE_ENV):
 
 def make_image_folder(macro_obj):
     """Create new image subfolder based on next scanId in configured base folder."""
-    scanId = get_env(macro_obj, env="ScanID")
+    scanId = get_env(macro_obj, "ScanID")
     charlie_conf = get_env(macro_obj)
     image_folder = os.path.join(charlie_conf["folder"], f"scan_{scanId:%06d}")
     if not os.path.exists(image_folder):
@@ -40,13 +40,14 @@ class charlie_conf(Macro):
     def run(self, parameter=None, value=None):
         try:
             charlie_conf = get_env(self)
-        except Exception:
+        except ValueError:
             self.output("No CHARLIE configuration found. Creating default one.")
             charlie_conf = {
-                "folder": get_env("ScanDir"),
+                "folder": get_env(self, "ScanDir"),
                 "channel": "charlie",
                 "basename": "charlie",
             }
+            self.setEnv(CHARLIE_ENV, charlie_conf)
         if parameter is None:
             # no parameter given -> print full config
             self.print_config(charlie_conf)
