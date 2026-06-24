@@ -23,7 +23,7 @@ def make_image_folder(macro_obj):
     """Create new image subfolder based on next scanId in configured base folder."""
     scanId = get_env(macro_obj, "ScanID")
     charlie_conf = get_env(macro_obj)
-    image_folder = os.path.join(charlie_conf["folder"], f"scan_{scanId:%06d}")
+    image_folder = os.path.join(charlie_conf["folder"], f"scan_{scanId:06d}")
     if not os.path.exists(image_folder):
         os.mkdirs(image_folder)
     return image_folder
