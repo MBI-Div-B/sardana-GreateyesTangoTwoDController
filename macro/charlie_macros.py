@@ -62,7 +62,7 @@ class charlie_conf(Macro):
 
     def print_config(self, conf, parameter=None):
         if parameter is None:
-            self.output(pprint.pformat(conf), width=16)
+            self.output(pprint.pformat(conf, width=16))
         else:
             self.output(f"{parameter} = {conf[parameter]}")
 
