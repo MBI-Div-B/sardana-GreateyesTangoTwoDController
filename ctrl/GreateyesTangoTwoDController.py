@@ -56,7 +56,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         """Constructor"""
         super().__init__(inst, props, *args, **kwargs)
         self._initialized: bool = False
-        self._last_image_returned: int | None = None
+        self._last_image_returned: int = 0
         self._synchronization = AcqSynch.SoftwareTrigger
 
         try:
@@ -64,10 +64,6 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             self._initialized = True
         except Exception as exc:
             self._log.error(f"Error starting GreateyesTangoTwoDController: {exc}")
-
-    def ReadOne(self, axis):
-        """We should never return the image since overhead is way too much."""
-        return self.proxy.image
 
     def getLastFileIndex(self) -> int:
         index = re.findall(r"([0-9]+)\.tif", self.proxy.LastSavedImage)
@@ -107,12 +103,13 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             
     def SetAxisPar(self, axis, parameter, value):
         parameter = parameter.lower()
-        if parameter == "value_ref_pattern" and self.isSavingEnabled():
+        if parameter == "value_ref_pattern":
             folder, fname = path.split(value)
             if not path.isdir(folder):
                 raise ValueError(f"{folder} is not a directory!")
             self.proxy.FileDir = folder
             self.proxy.FilePrefix = fname
+            self.proxy.FileStartNum = 1
         elif parameter == "value_ref_enabled" and not value:
             raise ValueError("Cannot disable value_ref_enabled on 2D")
 
@@ -122,6 +119,8 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             return self.getFileNamePattern()
         elif parameter == "value_ref_enabled":
             return True
+        elif parameter == "shape":
+            return [self.proxy.RoiXWidth, self.proxy.RoiYHeight]
 
     def StateOne(self, axis):
         """Get the specified counter state"""
