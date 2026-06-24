@@ -54,7 +54,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
 
     def __init__(self, inst, props, *args, **kwargs):
         """Constructor"""
-        super().__init__(self, inst, props, *args, **kwargs)
+        super().__init__(inst, props, *args, **kwargs)
         self._initialized: bool = False
         self._last_image_returned: int | None = None
         self._synchronization = AcqSynch.SoftwareTrigger
@@ -107,7 +107,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             
     def SetAxisPar(self, axis, parameter, value):
         parameter = parameter.lower()
-        if parameter == "value_ref_pattern":
+        if parameter == "value_ref_pattern" and self.isSavingEnabled():
             folder, fname = path.split(value)
             if not path.isdir(folder):
                 raise ValueError(f"{folder} is not a directory!")
@@ -152,7 +152,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         """Abort the specified counter"""
         self.proxy.StopAcq()
 
-    def isSavingEnabled(self, axis):
+    def isSavingEnabled(self, axis=None):
         return bool(self.proxy.SaveImageFiles)
 
     def setSavingEnabled(self, axis, value):
