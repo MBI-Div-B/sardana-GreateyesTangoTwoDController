@@ -30,37 +30,40 @@ ActiveMntGrp = mg_charlie
 
 ### Hook Macros
 
-The macros in `charlie_macros.py` are intended to facilitate efficient and consistent behavior. `charlie_hook` should be registered as pre-scan hook:
+The macros in `charlie_macros.py` are intended to facilitate efficient and consistent behavior. `charlie_pre_scan_hook` and `charlie_post_scan_hook` should be registered in the appropriate hook places:
 
-`defgh charlie_hook pre-scan`
+```
+defgh charlie_pre_scan_hook pre-scan
+defgh charlie_post_scan_hook post-scan
+```
 
-The hook will configure file saving for the next scan according to environment variables set via the `charlie_conf` macro:
+The pre-scan hook will configure file saving for the next scan according to environment variables set via the `charlie_conf` macro:
 
 ```
 Door_maxi_1 [4]: charlie_conf
 {'basename': '2606_OPUS',
  'channel': 'charlie',
- 'nframes': 10,
  'create_folders': True,
  'folder': '/home/labuser/data/2606_BESSY_UE51PGM/gecmos',
+ 'nframes': 10,
  'scansubfolder': True}
 ```
 
 The parameters can be configured with the same macro:
 
-`charlie_conf basename 2606_exp1_`
+`charlie_conf basename 2606_exp1`
 
 | Parameter | Description
 |-----------|------------
-| channel   | name of the CHARLIE sardana 2Dexpchannel
-| nframes   | number of frames to acquire for each software trigger
-| folder    | base data folder
 | basename  | tif file name part before the counting index
-| scansubfolder  | If True, each scan will create a new subfolder
+| channel   | name of the CHARLIE sardana 2Dexpchannel
 | create_folders | If True, the hook macro creates the folder for the tango DS to write files into
+| folder    | base data folder
+| nframes   | number of frames to acquire for each software trigger
+| scansubfolder  | If True, each scan will create a new subfolder
 
 
-To automatically disable file saving when not in a proper scan, register the `charlie_disable_saving` macro post-scan. This is useful to not clutter the file system with `ct`s.
+The post-scan hook disables file saving when not in a proper scan and resets the detector to single frame mode. This is useful to not clutter the file system with `ct`s.
 
 
 ### Multiple Acquisition
