@@ -9,7 +9,7 @@ This controller is written for the CHARLIE sCMOS tango-ds v0.1
 In spock
 
 ```
-defctrl GreateyesTangoTwoDController gecharliectrl tangoFQDN <GE_TANGO_DEVICE>
+defctrl GreateyesTangoTwoDController gecharliectrl tangoFQDN <domain/family/member>
 defelem charlie gecharliectrl
 ```
 
@@ -51,7 +51,7 @@ Door_maxi_1 [4]: charlie_conf
 
 The parameters can be configured with the same macro:
 
-`charlie_conf basename 2606_exp1`
+`charlie_conf <parameter> <value>`
 
 | Parameter | Description
 |-----------|------------
@@ -62,7 +62,7 @@ The parameters can be configured with the same macro:
 | scansubfolder  | If True, each scan will create a new subfolder
 
 
-The post-scan hook disables file saving when not in a proper scan and resets the detector to single frame mode. This is useful to not clutter the file system with `ct`s.
+The post-scan hook disables file saving when not in a proper scan and resets the detector to single frame mode. This is useful to not clutter the file system when doing `ct`.
 
 
 ### Multiple Acquisition
