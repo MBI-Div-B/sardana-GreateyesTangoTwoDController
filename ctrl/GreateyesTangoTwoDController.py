@@ -100,7 +100,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             first_index = self._start_index
             last_index = self.getLastFileIndex()
             filepattern = self.getFileNamePattern()
-            return f"file://{filepattern};;{first_index},{last_index}"
+            return f"file://{filepattern};{first_index}-{last_index}"
         else:
             raise ValueError("Detector is in video mode!")
 
