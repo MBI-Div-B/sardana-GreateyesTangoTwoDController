@@ -49,11 +49,12 @@ class charlie_conf(Macro):
         except ValueError:
             self.output("No CHARLIE configuration found. Creating default one.")
             charlie_conf = {
-                "folder": get_env(self, "ScanDir"),
                 "channel": "charlie",
+                "nframes": 1,
+                "folder": get_env(self, "ScanDir"),
                 "basename": "charlie",
-                "create_folders": True,
                 "scansubfolder": True,
+                "create_folders": True,
             }
             self.setEnv(CHARLIE_ENV, charlie_conf)
         if parameter is None:
@@ -67,6 +68,8 @@ class charlie_conf(Macro):
             # TODO: validate parameters!
             if parameter in ["create_folders", "scansubfolder"]:
                 value = value.lower() == "true"
+            elif parameter == "nframes":
+                value = int(value)
             charlie_conf[parameter] = value
             self.setEnv(CHARLIE_ENV, charlie_conf)
             self.print_config(charlie_conf)
@@ -78,7 +81,7 @@ class charlie_conf(Macro):
             self.output(f"{parameter} = {conf[parameter]}")
 
 
-class charlie_hook(Macro):
+class charlie_pre_scan_hook(Macro):
     """Configure CHARLIE detector before scan."""
 
     def run(self):
@@ -95,12 +98,16 @@ class charlie_hook(Macro):
             self.set_meas_conf("ValueRefPattern", file_pattern, channel, mg)
             self.set_meas_conf("ValueRefEnabled", True, channel, mg)
             proxy = get_channel_tango_object(self, channel)
+            nframes = conf["nframes"]
+            proxy.Nframes = nframes
             proxy.SavingEnabled = True
-            self.output(f"{channel} file saving is enabled.")
+            self.output(
+                f"{channel} file saving enabled. Recording {nframes} frames per step."
+            )
 
 
-class charlie_disable_saving(Macro):
-    """Disable image saving after scan."""
+class charlie_post_scan_hook(Macro):
+    """Disable image saving and reset nframes to one."""
 
     def run(self):
         conf = get_env(self)
@@ -112,6 +119,7 @@ class charlie_disable_saving(Macro):
                 continue
             proxy = get_channel_tango_object(self, channel)
             proxy.SavingEnabled = False
-            self.output(f"{channel} file saving is disabled.")
+            proxy.Nframes = 1
+            self.output(f"{channel} file saving disabled, setting single frame mode.")
 
 

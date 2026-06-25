@@ -40,6 +40,7 @@ The hook will configure file saving for the next scan according to environment v
 Door_maxi_1 [4]: charlie_conf
 {'basename': '2606_OPUS',
  'channel': 'charlie',
+ 'nframes': 10,
  'create_folders': True,
  'folder': '/home/labuser/data/2606_BESSY_UE51PGM/gecmos',
  'scansubfolder': True}
@@ -51,9 +52,10 @@ The parameters can be configured with the same macro:
 
 | Parameter | Description
 |-----------|------------
-| basename  | tif file name part before the counting index
 | channel   | name of the CHARLIE sardana 2Dexpchannel
+| nframes   | number of frames to acquire for each software trigger
 | folder    | base data folder
+| basename  | tif file name part before the counting index
 | scansubfolder  | If True, each scan will create a new subfolder
 | create_folders | If True, the hook macro creates the folder for the tango DS to write files into
 
@@ -63,16 +65,9 @@ To automatically disable file saving when not in a proper scan, register the `ch
 
 ### Multiple Acquisition
 
-The expchannel has the number of frames to acquire as a free parameter:
+To acquire multiple frames per scan point, set the `nframes` configuration parameter:
 
-```
-Door_maxi_1 [6]: charlie.nframes
-     Result [6]: 10
-```
-
-To set, simply type
-
-`charlie.nframes = 20`
+`charlie_conf nframes 20`
 
 If set to a value greater than one, multiple images will be recorded for each SoftwareTrigger. The names of the files saved will be returned as file references in the form:
 

@@ -198,6 +198,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             raise ValueError("Nmber of frames needs to be positive.")
         elif value == 1:
             self.proxy.ReadoutMode = 0
+            self.proxy.NumAcquisitions = 1
         else:
             self.proxy.ReadoutMode = 1
             self.proxy.NumAcquisitions = value
