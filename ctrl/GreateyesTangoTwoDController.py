@@ -98,7 +98,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             return f"file://{self.proxy.LastSavedImage}"
         elif readoutmode == 1:
             first_index = self._start_index
-            last_index = first_index + self.proxy.NumAcquisitions
+            last_index = self.getLastFileIndex()
             filepattern = self.getFileNamePattern()
             return f"file://{filepattern};;{first_index},{last_index}"
         else:
