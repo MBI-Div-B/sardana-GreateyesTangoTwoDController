@@ -73,7 +73,7 @@ To acquire multiple frames per scan point, set the `nframes` attribute on the ex
 
 If set to a value greater than one, multiple images will be recorded for each SoftwareTrigger. The names of the files saved will be returned as file references in the form:
 
-`file://<folder>[/<subfolder>]/<basename>_%06d.tif;<start_index>,<end_index>`
+`file://<folder>[/<subfolder>]/<basename>_%06d.tif;<start_index>-<end_index>`
 
 Example for a scan point with 10 acquisitions:
 
