@@ -54,6 +54,12 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             FSet: "setNframes",
             Description: "Number of frames to acquire for a single acquisition.",
         },
+        "ReadoutMode": {
+            Type: int,
+            FGet: "getReadoutMode",
+            FSet: "setReadoutMode",
+            Description: "0 = Single Frame, 1 = Multiple Frames"
+        },
     }
 
     MaxDevice = 1
@@ -145,7 +151,6 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
     def PrepareOne(self, axis, value, repetitions, latency, nb_starts):
         """Set exposure time. Keep number of acquisitions as a free parameter."""
         self.proxy.ExposureTime = 1000 * value
-        self.proxy.ReadoutMode = 0 if self.proxy.NumAcquisitions == 1 else 1
         self.proxy.PrepareAcq()
 
     def LoadOne(self, axis, value, repetitions, latency):
@@ -193,14 +198,20 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         return self.proxy.NumAcquisitions
 
     def setNframes(self, axis, value: int):
-        """Set number of frames to acquire and according readout mode."""
+        """Set number of frames to acquire.
+
+        We're not automatically setting readout mode to make it easy to swap between
+        ct (single frame) and proper scan (multi-frame) without resetting nframes.
+        """
         if value <= 0:
             raise ValueError("Nmber of frames needs to be positive.")
-        elif value == 1:
-            self.proxy.ReadoutMode = 0
-            self.proxy.NumAcquisitions = 1
-        else:
-            self.proxy.ReadoutMode = 1
-            self.proxy.NumAcquisitions = value
+        self.proxy.NumAcquisitions = value
 
+    def getReadoutMode(self, axis) -> int:
+        """Get the current readout mode."""
+        return self.proxy.ReadoutMode
+
+    def setReadoutMode(self, axis, value: int):
+        """Set readout mode (0=single, 1=multi, 2=video)."""
+        self.proxy.ReadoutMode = value
 
