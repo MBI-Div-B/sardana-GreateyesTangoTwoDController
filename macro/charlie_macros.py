@@ -25,7 +25,7 @@ def make_image_folder(macro_obj):
     scanId = get_env(macro_obj, "ScanID")
     charlie_conf = get_env(macro_obj)
     image_folder = os.path.join(charlie_conf["folder"], f"scan_{scanId:06d}")
-    if not os.path.exists(image_folder):
+    if not os.path.exists(image_folder) and charlie_conf["create_folders"]:
         os.mkdir(image_folder)
     return image_folder
 
@@ -52,6 +52,8 @@ class charlie_conf(Macro):
                 "folder": get_env(self, "ScanDir"),
                 "channel": "charlie",
                 "basename": "charlie",
+                "create_folders": True,
+                "scansubfolder": True,
             }
             self.setEnv(CHARLIE_ENV, charlie_conf)
         if parameter is None:
@@ -63,8 +65,11 @@ class charlie_conf(Macro):
         else:
             # both parameter and value given -> set parameter
             # TODO: validate parameters!
+            if parameter in ["create_folders", "scansubfolder"]:
+                value = value.lower() == "true"
             charlie_conf[parameter] = value
             self.setEnv(CHARLIE_ENV, charlie_conf)
+            self.print_config(charlie_conf)
 
     def print_config(self, conf, parameter=None):
         if parameter is None:
