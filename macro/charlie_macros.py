@@ -50,7 +50,6 @@ class charlie_conf(Macro):
             self.output("No CHARLIE configuration found. Creating default one.")
             charlie_conf = {
                 "channel": "charlie",
-                # "nframes": 1,
                 "folder": get_env(self, "ScanDir"),
                 "basename": "charlie",
                 "scansubfolder": True,
@@ -68,8 +67,6 @@ class charlie_conf(Macro):
             # TODO: validate parameters?
             if parameter in ["create_folders", "scansubfolder"]:
                 value = value.lower() == "true"
-            # elif parameter == "nframes":
-            #     value = int(value)
             charlie_conf[parameter] = value
             self.setEnv(CHARLIE_ENV, charlie_conf)
             self.print_config(charlie_conf)
