@@ -3,6 +3,7 @@ import os
 import pprint
 
 from sardana.macroserver.macro import Macro, Optional, Type
+from tango import DeviceProxy
 
 CHARLIE_ENV = "_CharlieConfiguration"
 
@@ -27,6 +28,11 @@ def make_image_folder(macro_obj):
     if not os.path.exists(image_folder):
         os.mkdir(image_folder)
     return image_folder
+
+
+def get_channel_tango_object(macro_obj, channel):
+    proxy = DeviceProxy(macro_obj.getObj(channel).full_name)
+    return proxy
 
 
 class charlie_conf(Macro):
@@ -83,8 +89,9 @@ class charlie_hook(Macro):
             file_pattern = os.path.join(folder, f"{conf['basename']}_")
             self.set_meas_conf("ValueRefPattern", file_pattern, channel, mg)
             self.set_meas_conf("ValueRefEnabled", True, channel, mg)
-            detector_obj = self.get2DExpChannel(channel)
-            detector_obj.SavingEnabled = True
+            proxy = get_channel_tango_object(self, channel)
+            proxy.SavingEnabled = True
+            self.output(f"{channel} file saving is enabled.")
 
 
 class charlie_disable_saving(Macro):
@@ -98,7 +105,8 @@ class charlie_disable_saving(Macro):
         for channel in mg.getChannelLabels():
             if channel != conf["channel"]:
                 continue
-            detector_obj = self.get2DExpChannel(channel)
-            detector_obj.SavingEnabled = False
+            proxy = get_channel_tango_object(self, channel)
+            proxy.SavingEnabled = False
+            self.output(f"{channel} file saving is disabled.")
 
 
