@@ -8,9 +8,10 @@ This controller is written for the CHARLIE sCMOS tango-ds v0.1
 
 In spock
 
- defctrl GreateyesTangoTwoDController gecharliectrl tangoFQDN <GE_TANGO_DEVICE>
- defelem charlie gecharliectrl
-
+```
+defctrl GreateyesTangoTwoDController gecharliectrl tangoFQDN <GE_TANGO_DEVICE>
+defelem charlie gecharliectrl
+```
 
 ## Features and Usage
 
@@ -37,7 +38,7 @@ The hook will configure file saving for the next scan according to environment v
 
 ```
 Door_maxi_1 [4]: charlie_conf
-{'basename': '2606_OPUS_',
+{'basename': '2606_OPUS',
  'channel': 'charlie',
  'create_folders': True,
  'folder': '/home/labuser/data/2606_BESSY_UE51PGM/gecmos',
@@ -46,7 +47,7 @@ Door_maxi_1 [4]: charlie_conf
 
 The parameters can be configured with the same macro:
 
- charlie_conf basename 2606_exp1_
+`charlie_conf basename 2606_exp1_`
 
 | Parameter | Description
 |-----------|------------
@@ -71,13 +72,13 @@ Door_maxi_1 [6]: charlie.nframes
 
 To set, simply type
 
- charlie.nframes = 20
+`charlie.nframes = 20`
 
 If set to a value greater than one, multiple images will be recorded for each SoftwareTrigger. The names of the files saved will be returned as file references in the form:
 
- file://<folder>[/<subfolder>]/<basename>%06d.tif;<start_index>,<end_index>
+`file://<folder>[/<subfolder>]/<basename>_%06d.tif;<start_index>,<end_index>`
 
 Example for a scan point with 10 acquisitions:
 
- file:///home/labuser/data/2606_BESSY_UE51PGM/gecmos/scan_001335/2606_OPUS__%06d.tif;407-416
+`file:///home/labuser/data/2606_BESSY_UE51PGM/gecmos/scan_001335/2606_OPUS_%06d.tif;407-416`
 
