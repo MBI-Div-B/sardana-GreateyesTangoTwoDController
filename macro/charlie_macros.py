@@ -83,7 +83,22 @@ class charlie_hook(Macro):
             file_pattern = os.path.join(folder, f"{conf['basename']}_")
             self.set_meas_conf("ValueRefPattern", file_pattern, channel, mg)
             self.set_meas_conf("ValueRefEnabled", True, channel, mg)
+            detector_obj = self.get2DExpChannel(channel)
+            detector_obj.SavingEnabled = True
 
 
+class charlie_disable_saving(Macro):
+    """Disable image saving after scan."""
+
+    def run(self):
+        conf = get_env(self)
+        mg_active = self.getEnv("ActiveMntGrp")
+        mg = self.getMeasurementGroup(mg_active)
+
+        for channel in mg.getChannelLabels():
+            if channel != conf["channel"]:
+                continue
+            detector_obj = self.get2DExpChannel(channel)
+            detector_obj.SavingEnabled = False
 
 

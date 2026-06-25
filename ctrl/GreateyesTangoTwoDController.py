@@ -112,6 +112,10 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
                 raise ValueError("Only Software synchronzation implemented!")
             else:
                 self._synchronization = value
+
+    def GetCtrlPar(self, name):
+        if name == "latency_time":
+            return self.proxy.NumAcquisitions * self.proxy.ExposureTime
             
     def SetAxisPar(self, axis, parameter, value):
         parameter = parameter.lower()
@@ -129,8 +133,6 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         parameter = parameter.lower()
         if parameter == "value_ref_pattern":
             return self.getFileNamePattern()
-        elif parameter == "value_ref_enabled":
-            return True
         elif parameter == "shape":
             return [self.proxy.RoiXWidth, self.proxy.RoiYHeight]
         else:
