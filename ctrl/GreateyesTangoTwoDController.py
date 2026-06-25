@@ -14,7 +14,7 @@ from sardana.pool.controller import (
 )
 from tango import DeviceProxy
 
-ALLOWED_SYNCHRONIZATIONS = [AcqSynch.SoftwareTrigger, AcqSynch.SoftwareStart]
+ALLOWED_SYNCHRONIZATIONS = [AcqSynch.SoftwareTrigger,]
 
 
 class Gain(IntEnum):
@@ -40,13 +40,19 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             Type: bool,
             FGet: "isSavingEnabled",
             FSet: "setSavingEnabled",
-            Description: "Enable/ disable saving of images in tiff files."
+            Description: "Enable/ disable saving of images in tiff files.",
         },
         "Gain": {
             Type: str,
             FGet: "getGain",
             FSet: "setGain",
             Description: "Gain mode (LOW, STD, HDR, HDR_LOWNOISE)",
+        },
+        "Nframes": {
+            Type: int,
+            FGet: "getNframes",
+            FSet: "setNframes",
+            Description: "Number of frames to acquire for a single acquisition.",
         },
     }
 
@@ -55,7 +61,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
     def __init__(self, inst, props, *args, **kwargs):
         """Constructor"""
         super().__init__(inst, props, *args, **kwargs)
-        self._last_image_returned: int = 0
+        self._start_index: int = 0
         self._synchronization = AcqSynch.SoftwareTrigger
         self.proxy = DeviceProxy(self.tangoFQDN)
 
@@ -76,35 +82,27 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         return path.join(self.proxy.FileDir, f"{self.proxy.FilePrefix}%06d.tif")
 
     def ReadOne(self, axis):
-        if self._synchronization == AcqSynch.SoftwareTrigger:
-            return self.proxy.Image
-        elif self._synchronization == AcqSynch.SoftwareStart:
-            raise ValueError(
-                "value_ref_enabled is required for SoftwareStart synchronization!"
-            )
+        return self.proxy.Image
 
     def RefOne(self, axis):
         """
         Return the file uri of the last saved image(s).
 
-        
+        In case of multi-frame acquisitions, the folder and index range is returned.
         """
         if not self.proxy.SaveImageFiles:
             raise ValueError("value_ref_enabled but file saving is off!")
 
-        if self._synchronization == AcqSynch.SoftwareTrigger:
-            return self.proxy.LastSavedImage
-
-        elif self._synchronization == AcqSynch.SoftwareStart:
-            current_index = self.getLastFileIndex()
+        readoutmode = self.proxy.ReadoutMode
+        if readoutmode == 0:
+            return f"file://{self.proxy.LastSavedImage}"
+        elif readoutmode == 1:
+            first_index = self._start_index
+            last_index = first_index + self.proxy.NumAcquisitions
             filepattern = self.getFileNamePattern()
-            new_indices = range(self._last_image_returned, current_index)
-            self._last_image_returned = current_index
-            list_new_files = [filepattern % (i + 1) for i in new_indices]
-            return list_new_files
-
+            return f"file://{filepattern};;{first_index},{last_index}"
         else:
-            raise NotImplementedError("Only Software synchronization implemented!")
+            raise ValueError("Detector is in video mode!")
 
     def SetCtrlPar(self, name, value):
         super().SetCtrlPar(name, value)
@@ -123,11 +121,8 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
                 raise ValueError(f"{folder} is not a directory!")
             self.proxy.FileDir = folder
             self.proxy.FilePrefix = fname
-            self.proxy.FileStartNum = 1
-        elif parameter == "value_ref_enabled" and not value:
-            raise ValueError("Cannot disable value_ref_enabled on 2D")
         else:
-            return super().SetAxisPar(axis, parameter, value)
+            super().SetAxisPar(axis, parameter, value)
 
     def GetAxisPar(self, axis, parameter):
         parameter = parameter.lower()
@@ -137,6 +132,8 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             return True
         elif parameter == "shape":
             return [self.proxy.RoiXWidth, self.proxy.RoiYHeight]
+        else:
+            return super().GetAxisPar(axis, parameter)
 
     def StateOne(self, axis):
         """Get the specified counter state"""
@@ -154,8 +151,8 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
 
     def StartOne(self, axis, value=None):
         """acquire the specified counter"""
-        self._last_image_returned = self.getLastFileIndex()
-        print(f"CHARLIE last index: {self._last_image_returned}")
+        self._start_index = self.getLastFileIndex()
+        print(f"CHARLIE last index: {self._start_index}")
         self.proxy.StartAcq()
         return
 
@@ -187,4 +184,19 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
 
         value = Gain(value) if isinstance(value, int) else Gain[value]
         self.proxy.Gain = value
+
+    def getNframes(self) -> int:
+        """Get number of frames to acquire."""
+        return self.proxy.NumAcquisitions
+
+    def setNframes(self, value: int):
+        """Set number of frames to acquire and according readout mode."""
+        if value <= 0:
+            raise ValueError("Nmber of frames needs to be positive.")
+        elif value == 1:
+            self.proxy.ReadoutMode = 0
+        else:
+            self.proxy.ReadoutMode = 1
+            self.proxy.NumAcquisitions = value
+
 
