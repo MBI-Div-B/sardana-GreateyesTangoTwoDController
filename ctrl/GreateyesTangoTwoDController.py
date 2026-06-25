@@ -172,11 +172,11 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         """Enable or Disable file saving."""
         self.proxy.SaveImageFiles = bool(value)
 
-    def getGain(self) -> str:
+    def getGain(self, axis) -> str:
         """Return the current detetor gain string."""
         return self.proxy.Gain.name
 
-    def setGain(self, value: str):
+    def setGain(self, axis, value: str):
         """Sets the detector gain mode.
 
         Valid modes are: LOW, STD, HDR, HDR_LOWNOISE
@@ -185,11 +185,11 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         value = Gain(value) if isinstance(value, int) else Gain[value]
         self.proxy.Gain = value
 
-    def getNframes(self) -> int:
+    def getNframes(self, axis) -> int:
         """Get number of frames to acquire."""
         return self.proxy.NumAcquisitions
 
-    def setNframes(self, value: int):
+    def setNframes(self, axis, value: int):
         """Set number of frames to acquire and according readout mode."""
         if value <= 0:
             raise ValueError("Nmber of frames needs to be positive.")
