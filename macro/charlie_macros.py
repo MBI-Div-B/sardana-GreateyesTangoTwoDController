@@ -25,7 +25,7 @@ def make_image_folder(macro_obj):
     charlie_conf = get_env(macro_obj)
     image_folder = os.path.join(charlie_conf["folder"], f"scan_{scanId:06d}")
     if not os.path.exists(image_folder):
-        os.mkdirs(image_folder)
+        os.mkdir(image_folder)
     return image_folder
 
 
@@ -83,4 +83,7 @@ class charlie_hook(Macro):
             file_pattern = os.path.join(folder, f"{conf['basename']}_")
             self.set_meas_conf("ValueRefPattern", file_pattern, channel, mg)
             self.set_meas_conf("ValueRefEnabled", True, channel, mg)
+
+
+
 

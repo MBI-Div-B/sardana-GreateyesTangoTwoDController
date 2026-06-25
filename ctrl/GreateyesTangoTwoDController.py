@@ -55,31 +55,44 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
     def __init__(self, inst, props, *args, **kwargs):
         """Constructor"""
         super().__init__(inst, props, *args, **kwargs)
-        self._initialized: bool = False
         self._last_image_returned: int = 0
         self._synchronization = AcqSynch.SoftwareTrigger
-
-        try:
-            self.proxy = DeviceProxy(self.tangoFQDN)
-            self._initialized = True
-        except Exception as exc:
-            self._log.error(f"Error starting GreateyesTangoTwoDController: {exc}")
+        self.proxy = DeviceProxy(self.tangoFQDN)
 
     def getLastFileIndex(self) -> int:
+        """
+        Get the index of the last saved file.
+
+        This is a dirty workaround since the greateyes tangoDS
+        does not provide an image counter.
+        """
         index = re.findall(r"([0-9]+)\.tif", self.proxy.LastSavedImage)
         if len(index):
-            return index[0]
+            return int(index[0])
         else:
             return 0
 
     def getFileNamePattern(self) -> str:
         return path.join(self.proxy.FileDir, f"{self.proxy.FilePrefix}%06d.tif")
 
-    def RefOne(self, axis):
-        if not self.proxy.SaveImageFile:
-            return "None"
+    def ReadOne(self, axis):
+        if self._synchronization == AcqSynch.SoftwareTrigger:
+            return self.proxy.Image
+        elif self._synchronization == AcqSynch.SoftwareStart:
+            raise ValueError(
+                "value_ref_enabled is required for SoftwareStart synchronization!"
+            )
 
-        elif self._synchronization == AcqSynch.SoftwareTrigger:
+    def RefOne(self, axis):
+        """
+        Return the file uri of the last saved image(s).
+
+        
+        """
+        if not self.proxy.SaveImageFiles:
+            raise ValueError("value_ref_enabled but file saving is off!")
+
+        if self._synchronization == AcqSynch.SoftwareTrigger:
             return self.proxy.LastSavedImage
 
         elif self._synchronization == AcqSynch.SoftwareStart:
@@ -87,7 +100,8 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             filepattern = self.getFileNamePattern()
             new_indices = range(self._last_image_returned, current_index)
             self._last_image_returned = current_index
-            return [filepattern % i for i in new_indices]
+            list_new_files = [filepattern % (i + 1) for i in new_indices]
+            return list_new_files
 
         else:
             raise NotImplementedError("Only Software synchronization implemented!")
@@ -112,6 +126,8 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             self.proxy.FileStartNum = 1
         elif parameter == "value_ref_enabled" and not value:
             raise ValueError("Cannot disable value_ref_enabled on 2D")
+        else:
+            return super().SetAxisPar(axis, parameter, value)
 
     def GetAxisPar(self, axis, parameter):
         parameter = parameter.lower()
@@ -127,6 +143,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         return self.proxy.State()
 
     def PrepareOne(self, axis, value, repetitions, latency, nb_starts):
+        """Set exposure time and number of acquisitions."""
         self.proxy.ExposureTime = 1000 * value
         if repetitions > 1:
             self.proxy.ReadoutMode = 1
@@ -135,11 +152,10 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             self.proxy.ReadoutMode = 0
         self.proxy.PrepareAcq()
 
-    def LoadOne(self, axis, value, repetitions, latency):
-        pass
-
     def StartOne(self, axis, value=None):
         """acquire the specified counter"""
+        self._last_image_returned = self.getLastFileIndex()
+        print(f"CHARLIE last index: {self._last_image_returned}")
         self.proxy.StartAcq()
         return
 
@@ -152,18 +168,23 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         self.proxy.StopAcq()
 
     def isSavingEnabled(self, axis=None):
+        """Return whether file saving is enabled on the tango DS."""
         return bool(self.proxy.SaveImageFiles)
 
     def setSavingEnabled(self, axis, value):
+        """Enable or Disable file saving."""
         self.proxy.SaveImageFiles = bool(value)
 
     def getGain(self) -> str:
-        return self.proxy.Gain.name.upper()
+        """Return the current detetor gain string."""
+        return self.proxy.Gain.name
 
     def setGain(self, value: str):
-        self.proxy.Gain = Gain[value.upper()]
+        """Sets the detector gain mode.
 
+        Valid modes are: LOW, STD, HDR, HDR_LOWNOISE
+        """
 
-
-
+        value = Gain(value) if isinstance(value, int) else Gain[value]
+        self.proxy.Gain = value
 
