@@ -61,7 +61,7 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
     def __init__(self, inst, props, *args, **kwargs):
         """Constructor"""
         super().__init__(inst, props, *args, **kwargs)
-        self._start_index: int = 0
+        self._start_index: int = 1
         self._synchronization = AcqSynch.SoftwareTrigger
         self.proxy = DeviceProxy(self.tangoFQDN)
 
@@ -141,19 +141,19 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
         return self.proxy.State()
 
     def PrepareOne(self, axis, value, repetitions, latency, nb_starts):
-        """Set exposure time and number of acquisitions."""
+        """Set exposure time. Keep number of acquisitions as a free parameter."""
         self.proxy.ExposureTime = 1000 * value
-        if repetitions > 1:
-            self.proxy.ReadoutMode = 1
-            self.proxy.NumAcquisitions = repetitions
-        else:
-            self.proxy.ReadoutMode = 0
+        self.proxy.ReadoutMode = 0 if self.proxy.NumAcquisitions == 1 else 1
         self.proxy.PrepareAcq()
+
+    def LoadOne(self, axis, value, repetitions, latency):
+        """Do nothing, all settings done in PrepareOne"""
+        pass
 
     def StartOne(self, axis, value=None):
         """acquire the specified counter"""
-        self._start_index = self.getLastFileIndex()
-        print(f"CHARLIE last index: {self._start_index}")
+        self._start_index = self.getLastFileIndex() + 1
+        print(f"CHARLIE start index: {self._start_index}")
         self.proxy.StartAcq()
         return
 
