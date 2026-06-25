@@ -45,6 +45,7 @@ Door_maxi_1 [4]: charlie_conf
  'channel': 'charlie',
  'create_folders': True,
  'folder': '/home/labuser/data/2606_BESSY_UE51PGM/gecmos',
+ 'nframes': 10,
  'scansubfolder': True}
 ```
 
