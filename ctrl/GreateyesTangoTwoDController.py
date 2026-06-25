@@ -122,9 +122,10 @@ class GreateyesTangoTwoDController(TwoDController, Referable):
             self.proxy.FileDir = folder
             self.proxy.FilePrefix = fname
         else:
-            super().SetAxisPar(axis, parameter, value)
+            print(f"SetAxisPar {axis}, {parameter}, {value}")
 
     def GetAxisPar(self, axis, parameter):
+        print(f"GetAxisPar {axis}, {parameter}")
         parameter = parameter.lower()
         if parameter == "value_ref_pattern":
             return self.getFileNamePattern()
