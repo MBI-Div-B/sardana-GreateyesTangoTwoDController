@@ -32,7 +32,7 @@ ActiveMntGrp = mg_charlie
 
 The macros in `charlie_macros.py` are intended to facilitate efficient and consistent behavior. `charlie_hook` should be registered as pre-scan hook:
 
- defgh charlie_hook pre-scan
+`defgh charlie_hook pre-scan`
 
 The hook will configure file saving for the next scan according to environment variables set via the `charlie_conf` macro:
 
